@@ -1,0 +1,17 @@
+{
+    "Controller": {
+        "interval": 1,
+        "settings": {
+            "enabled": true
+        }
+    },
+    "API": {
+        "bind_ip": "",
+        "bind_port": 8001
+    },
+    "DHT": {
+        "model": "DHT11",
+        "pin": "D4",
+        "interval": 2
+    }
+}

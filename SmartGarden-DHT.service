@@ -1,0 +1,13 @@
+[Unit]
+Description=DHT11 sensor daemon
+
+[Service]
+ExecStart=/usr/local/bin/SmartGarden-DHT
+User=pi
+Group=pi
+Restart=on-failure
+RestartSec=2s
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

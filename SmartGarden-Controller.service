@@ -1,0 +1,13 @@
+[Unit]
+Description=SmartGarden Controller
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/SmartGarden-Controller
+User=pi
+Group=pi
+Restart=on-failure
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
