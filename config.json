@@ -2,7 +2,7 @@
     "Controller": {
         "interval": 1,
         "settings": {
-            "enabled": true
+            "enabled": false
         }
     },
     "API": {
@@ -13,5 +13,8 @@
         "model": "DHT11",
         "pin": "D4",
         "interval": 2
+    },
+    "Watering": {
+        "pin": 25
     }
 }

@@ -7,15 +7,17 @@ apt update && apt install -y libgpiod2
 pip3 install adafruit-circuitpython-dht
 
 # Deploy Python services
-apps="Controller DHT"
+apps="Controller DHT Watering"
 cp /dev/null /etc/sudoers.d/SmartGarden
 for app in $apps; do
     cp SmartGarden-$app.py /usr/local/bin/SmartGarden-$app
     chmod +x /usr/local/bin/SmartGarden-$app
-    cp SmartGarden-$app.service /etc/systemd/system/SmartGarden-$app.service
-    for command in start stop enable disable; do
-        echo "pi ALL=(ALL) NOPASSWD: /bin/systemctl $command SmartGarden-$app.service" >> /etc/sudoers.d/SmartGarden
-    done
+    if [ -f SmartGarden-$app.service ]; then
+        cp SmartGarden-$app.service /etc/systemd/system/SmartGarden-$app.service
+        for command in start stop enable disable; do
+            echo "pi ALL=(ALL) NOPASSWD: /bin/systemctl $command SmartGarden-$app.service" >> /etc/sudoers.d/SmartGarden
+        done
+    fi
 done
 chmod 440 /etc/sudoers.d/SmartGarden
 systemctl daemon-reload

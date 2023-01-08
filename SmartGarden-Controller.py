@@ -5,6 +5,7 @@ import os
 from threading import Thread
 import time
 import json
+import subprocess
 
 
 def _update_params(old, new):
@@ -60,15 +61,22 @@ class SmartGardenSensors:
 class SmartGardenActuators:
 
     def __init__(self):
-        self.watering = {
-            "enabled": False
-        }
+        pass
 
     def get_watering(self):
-        return "watering", self.watering
+        path = "/usr/local/bin/SmartGarden-Watering"
+        
+        output = int(subprocess.check_output([path]))
+        state = bool(output)
+
+        return "watering", {"enabled": state}
 
     def set_watering(self, params):
-        _update_params(self.watering, params)
+        path = "/usr/local/bin/SmartGarden-Watering"
+
+        state = str(int(params["enabled"]))
+        subprocess.check_output([path, state])
+
         return self.get_watering()
 
 
@@ -142,9 +150,9 @@ class SmartGardenHTTPRequestHandler(BaseHTTPRequestHandler):
             elif path == "sensors/humidity":
                 results.append(sensors.get_humidity())
             elif path == "sensors/moisture":
-                results.append(sensors.get_moisture)
+                results.append(sensors.get_moisture())
             elif path == "sensors/luminosity":
-                results.append(sensors.get_luminosity)
+                results.append(sensors.get_luminosity())
             
             elif path == "actuators":
                 results.append(actuators.get_watering())
@@ -160,8 +168,8 @@ class SmartGardenHTTPRequestHandler(BaseHTTPRequestHandler):
             if results:
                 self.respond(200, results)
         
-        except Exception:
-            self.respond_error(400, "Bad Request")
+        except Exception as e:
+            self.respond_error(500, e.args[0])
 
     def do_PATCH(self):
         try:
@@ -191,8 +199,8 @@ class SmartGardenHTTPRequestHandler(BaseHTTPRequestHandler):
             if results:
                 self.respond(200, results)
         
-        except Exception:
-            self.respond_error(400, "Bad Request")
+        except Exception as e:
+            self.respond_error(500, e.args[0])
 
 
 def main():
