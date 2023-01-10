@@ -1,0 +1,13 @@
+[Unit]
+Description=ADC daemon
+
+[Service]
+ExecStart=/usr/local/bin/SmartGarden-ADC
+User=pi
+Group=pi
+Restart=on-failure
+RestartSec=2s
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

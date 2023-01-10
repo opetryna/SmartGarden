@@ -4,10 +4,10 @@ set -x
 
 # Install external dependencies
 apt update && apt install -y libgpiod2
-pip3 install adafruit-circuitpython-dht
+pip3 install adafruit-circuitpython-dht pyserial
 
 # Deploy Python services
-apps="Controller DHT Watering"
+apps="Controller ADC DHT Watering"
 cp /dev/null /etc/sudoers.d/SmartGarden
 for app in $apps; do
     cp SmartGarden-$app.py /usr/local/bin/SmartGarden-$app
@@ -31,4 +31,4 @@ mkdir -p /etc/SmartGarden
 cp config.json /etc/SmartGarden/config.json
 chown -R pi: /etc/SmartGarden
 mkdir -p /var/SmartGarden
-chown pi: /var/SmartGarden
+chown -R pi: /var/SmartGarden

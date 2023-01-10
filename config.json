@@ -9,6 +9,18 @@
         "bind_ip": "",
         "bind_port": 8001
     },
+    "ADC": {
+        "device": "/dev/ttyACM0",
+        "baud": 9600,
+        "inputs": [
+            "luminosity",
+            "moisture",
+            null,
+            null,
+            null,
+            null
+        ]
+    },
     "DHT": {
         "model": "DHT11",
         "pin": "D4",
