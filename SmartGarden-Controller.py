@@ -40,21 +40,23 @@ class SmartGardenSensors:
         return "humidity", data
 
     def get_moisture(self):
-        data = {
-            "units": None,
-            "timestamp": None,
-            "value": None
-        }
+        path = "/var/SmartGarden/moisture"
+        data = {"units": "%"}
+
+        data["timestamp"] = int(os.path.getmtime(path))
+        with open(path, "r") as f:
+            data["value"] = float(f.read())
 
         return "moisture", data
     
     def get_luminosity(self):
-        data = {
-            "units": None,
-            "timestamp": None,
-            "value": None
-        }
+        path = "/var/SmartGarden/luminosity"
+        data = {"units": "%"}
 
+        data["timestamp"] = int(os.path.getmtime(path))
+        with open(path, "r") as f:
+            data["value"] = float(f.read())
+        
         return "luminosity", data
 
 
