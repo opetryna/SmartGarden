@@ -106,6 +106,16 @@ class SmartGardenActuators:
         return self.get_heating()
 
 
+class SmartGardenImage:
+
+    def __init__(self, config):
+        self.config = config
+
+    def get(self):
+        output = subprocess.check_output(["raspistill", "-o", "-", 
+        "-w", str(self.config["width"]), "-h", str(self.config["height"])])
+        return "image/jpeg", output
+
 class SmartGardenController(Thread):
 
     def __init__(self, config):
@@ -154,6 +164,12 @@ class SmartGardenHTTPRequestHandler(BaseHTTPRequestHandler):
         )]
         self.respond(code, results)
 
+    def respond_content(self, content_type, data):
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.end_headers()
+        self.wfile.write(data)
+
     @property
     def json(self):
         content_length = int(self.headers["Content-Length"])
@@ -193,9 +209,12 @@ class SmartGardenHTTPRequestHandler(BaseHTTPRequestHandler):
                 results.append(actuators.get_lighting())
             elif path == "actuators/heating":
                 results.append(actuators.get_heating())
-            
+
             elif path == "controller":
                 results.append(controller.get())
+            
+            elif path == "image":
+                self.respond_content(*image.get())
 
             else:
                 self.respond_error(404, "Not Found")
@@ -217,6 +236,9 @@ class SmartGardenHTTPRequestHandler(BaseHTTPRequestHandler):
             elif path.startswith("sensors"):
                 self.respond_error(405, "Method Not Allowed")
             
+            elif path.startswith("image"):
+                self.respond_error(405, "Method Not Allowed")
+
             elif path == "actuators":
                 self.respond_error(405, "Method Not Allowed")
             elif path == "actuators/watering":
@@ -252,9 +274,10 @@ def main():
     with open("/etc/SmartGarden/config.json", "r") as f:
         config = json.load(f)
     
-    global sensors, actuators, controller
+    global sensors, actuators, image, controller
     sensors = SmartGardenSensors()
     actuators = SmartGardenActuators()
+    image = SmartGardenImage(config["Image"])
     controller = SmartGardenController(config["Controller"])
     controller.start()
 

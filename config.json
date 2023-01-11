@@ -38,6 +38,10 @@
             "pin": 22
         }
     },
+    "Image": {
+        "width": 1280,
+        "height": 720
+    },
     "DHT": {
         "model": "DHT11",
         "pin": "D4",
