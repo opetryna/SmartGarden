@@ -22,8 +22,20 @@
         ]
     },
     "Output": {
+        "system-indicator": {
+            "pin": 25
+        },
+        "controller-indicator": {
+            "pin": 24
+        },
         "watering": {
-            "pin": 26
+            "pin": 17
+        },
+        "lighting": {
+            "pin": 27
+        },
+        "heating": {
+            "pin": 22
         }
     },
     "DHT": {

@@ -65,21 +65,45 @@ class SmartGardenActuators:
     def __init__(self):
         pass
 
-    def get_watering(self):
+    def read_output(self, channel: str) -> bool:
         path = "/usr/local/bin/SmartGarden-Output"
-        
-        output = int(subprocess.check_output([path, "watering"]))
-        state = bool(output)
 
+        output = int(subprocess.check_output([path, channel]))
+        value = bool(output)
+        
+        return value
+
+    def write_output(self, channel: str, value: bool) -> None:
+        path = "/usr/local/bin/SmartGarden-Output"
+
+        value = str(int(value))
+        subprocess.check_output([path, channel, value])
+
+        return None
+
+    def get_watering(self):
+        state = self.read_output("watering")
         return "watering", {"enabled": state}
 
     def set_watering(self, params):
-        path = "/usr/local/bin/SmartGarden-Output"
-
-        state = str(int(params["enabled"]))
-        subprocess.check_output([path, "watering", state])
-
+        self.write_output("watering", params["enabled"])
         return self.get_watering()
+    
+    def get_lighting(self):
+        state = self.read_output("lighting")
+        return "lighting", {"enabled": state}
+
+    def set_lighting(self, params):
+        self.write_output("lighting", params["enabled"])
+        return self.get_lighting()
+    
+    def get_heating(self):
+        state = self.read_output("heating")
+        return "heating", {"enabled": state}
+
+    def set_heating(self, params):
+        self.write_output("heating", params["enabled"])
+        return self.get_heating()
 
 
 class SmartGardenController(Thread):
@@ -97,9 +121,12 @@ class SmartGardenController(Thread):
 
     def set(self, params):
         _update_params(self.settings, params)
+        actuators.write_output("controller-indicator", self.settings["enabled"])
         return self.get()
     
     def run(self):
+        actuators.write_output("system-indicator", True)
+        actuators.write_output("controller-indicator", self.settings["enabled"])
         while True:
             if self.settings["enabled"]:
                 
@@ -158,8 +185,14 @@ class SmartGardenHTTPRequestHandler(BaseHTTPRequestHandler):
             
             elif path == "actuators":
                 results.append(actuators.get_watering())
+                results.append(actuators.get_lighting())
+                results.append(actuators.get_heating())
             elif path == "actuators/watering":
                 results.append(actuators.get_watering())
+            elif path == "actuators/lighting":
+                results.append(actuators.get_lighting())
+            elif path == "actuators/heating":
+                results.append(actuators.get_heating())
             
             elif path == "controller":
                 results.append(controller.get())
@@ -189,6 +222,16 @@ class SmartGardenHTTPRequestHandler(BaseHTTPRequestHandler):
             elif path == "actuators/watering":
                 if not controller.settings["enabled"]:
                     results.append(actuators.set_watering(self.json))
+                else:
+                    self.respond_error(403, "Cannot set actuators while the controller is enabled.")
+            elif path == "actuators/lighting":
+                if not controller.settings["enabled"]:
+                    results.append(actuators.set_lighting(self.json))
+                else:
+                    self.respond_error(403, "Cannot set actuators while the controller is enabled.")
+            elif path == "actuators/heating":
+                if not controller.settings["enabled"]:
+                    results.append(actuators.set_heating(self.json))
                 else:
                     self.respond_error(403, "Cannot set actuators while the controller is enabled.")
             

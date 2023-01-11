@@ -4,6 +4,8 @@ After=network.target
 
 [Service]
 ExecStart=/usr/local/bin/SmartGarden-Controller
+ExecStartPre=/usr/local/bin/SmartGarden-Output * 0
+ExecStopPost=/usr/local/bin/SmartGarden-Output * 0
 User=pi
 Group=pi
 Restart=on-failure
