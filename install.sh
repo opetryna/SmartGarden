@@ -7,7 +7,7 @@ apt update && apt install -y libgpiod2
 pip3 install adafruit-circuitpython-dht pyserial
 
 # Deploy Python services
-apps="Controller ADC DHT Watering"
+apps="Controller ADC DHT Output"
 cp /dev/null /etc/sudoers.d/SmartGarden
 for app in $apps; do
     cp SmartGarden-$app.py /usr/local/bin/SmartGarden-$app

@@ -21,12 +21,14 @@
             null
         ]
     },
+    "Output": {
+        "watering": {
+            "pin": 26
+        }
+    },
     "DHT": {
         "model": "DHT11",
         "pin": "D4",
         "interval": 2
-    },
-    "Watering": {
-        "pin": 25
     }
 }

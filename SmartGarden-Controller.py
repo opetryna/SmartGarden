@@ -64,18 +64,18 @@ class SmartGardenActuators:
         pass
 
     def get_watering(self):
-        path = "/usr/local/bin/SmartGarden-Watering"
+        path = "/usr/local/bin/SmartGarden-Output"
         
-        output = int(subprocess.check_output([path]))
+        output = int(subprocess.check_output([path, "watering"]))
         state = bool(output)
 
         return "watering", {"enabled": state}
 
     def set_watering(self, params):
-        path = "/usr/local/bin/SmartGarden-Watering"
+        path = "/usr/local/bin/SmartGarden-Output"
 
         state = str(int(params["enabled"]))
-        subprocess.check_output([path, state])
+        subprocess.check_output([path, "watering", state])
 
         return self.get_watering()
 
