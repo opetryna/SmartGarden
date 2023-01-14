@@ -2,7 +2,38 @@
     "Controller": {
         "interval": 1,
         "settings": {
-            "enabled": false
+            "enabled": true
+        }
+    },
+    "Sensors": {
+        "temperature": {
+            "units": "C"
+        },
+        "humidity": {
+            "units": "%"
+        },
+        "moisture": {
+            "units": "%"
+        },
+        "luminosity": {
+            "units": "%"
+        }
+    },
+    "Actuators": {
+        "watering": {
+            "sensor": "moisture",
+            "threshold": 15,
+            "deviation": 5
+        },
+        "lighting": {
+            "sensor": "luminosity",
+            "threshold": 20,
+            "deviation": 5
+        },
+        "heating": {
+            "sensor": "temperature",
+            "threshold": 24,
+            "deviation": 0
         }
     },
     "API": {

@@ -9,61 +9,34 @@ import subprocess
 
 
 def _update_params(old, new):
+    assert type(old) is type(new)
     for key in old.keys():
         if key in new:
+            if type(old[key]) is dict:
+                _update_params(old[key], new[key])
             old[key] = new[key]
 
 
 class SmartGardenSensors:
 
-    def __init__(self):
-        pass
+    def __init__(self, config):
+        self.config = config
 
-    def get_temperature(self):
-        path = "/var/SmartGarden/temperature"
-        data = {"units": "C"}
+    def get(self, sensor):
+        path = f"/var/SmartGarden/{sensor}"
 
-        data["timestamp"] = int(os.path.getmtime(path))
+        data = {"timestamp": int(os.path.getmtime(path))}
         with open(path, "r") as f:
             data["value"] = float(f.read())
-        
-        return "temperature", data
-    
-    def get_humidity(self):
-        path = "/var/SmartGarden/humidity"
-        data = {"units": "%"}
+        data["units"] = self.config[sensor]["units"]
 
-        data["timestamp"] = int(os.path.getmtime(path))
-        with open(path, "r") as f:
-            data["value"] = float(f.read())
-        
-        return "humidity", data
-
-    def get_moisture(self):
-        path = "/var/SmartGarden/moisture"
-        data = {"units": "%"}
-
-        data["timestamp"] = int(os.path.getmtime(path))
-        with open(path, "r") as f:
-            data["value"] = float(f.read())
-
-        return "moisture", data
-    
-    def get_luminosity(self):
-        path = "/var/SmartGarden/luminosity"
-        data = {"units": "%"}
-
-        data["timestamp"] = int(os.path.getmtime(path))
-        with open(path, "r") as f:
-            data["value"] = float(f.read())
-        
-        return "luminosity", data
+        return sensor, data
 
 
 class SmartGardenActuators:
 
-    def __init__(self):
-        pass
+    def __init__(self, config):
+        self.config = config
 
     def read_output(self, channel: str) -> bool:
         path = "/usr/local/bin/SmartGarden-Output"
@@ -81,29 +54,18 @@ class SmartGardenActuators:
 
         return None
 
-    def get_watering(self):
-        state = self.read_output("watering")
-        return "watering", {"enabled": state}
+    def get(self, actuator):
+        state = self.read_output(actuator)
+        data = {"enabled": state}
+        for k, v in self.config[actuator].items():
+            data[k] = v
+        return actuator, data
 
-    def set_watering(self, params):
-        self.write_output("watering", params["enabled"])
-        return self.get_watering()
-    
-    def get_lighting(self):
-        state = self.read_output("lighting")
-        return "lighting", {"enabled": state}
-
-    def set_lighting(self, params):
-        self.write_output("lighting", params["enabled"])
-        return self.get_lighting()
-    
-    def get_heating(self):
-        state = self.read_output("heating")
-        return "heating", {"enabled": state}
-
-    def set_heating(self, params):
-        self.write_output("heating", params["enabled"])
-        return self.get_heating()
+    def set(self, actuator, params):
+        _update_params(self.config[actuator], params)
+        if "enabled" in params:
+            self.write_output(actuator, params["enabled"])
+        return self.get(actuator)
 
 
 class SmartGardenImage:
@@ -131,16 +93,38 @@ class SmartGardenController(Thread):
 
     def set(self, params):
         _update_params(self.settings, params)
-        actuators.write_output("controller-indicator", self.settings["enabled"])
+        
+        controller_enabled = self.settings["enabled"]
+        actuators.write_output("controller-indicator", controller_enabled)
+        if not controller_enabled:
+            for actuator in actuators.config.keys():
+                actuators.set(actuator, {"enabled": False})
+        
         return self.get()
     
     def run(self):
         actuators.write_output("system-indicator", True)
         actuators.write_output("controller-indicator", self.settings["enabled"])
+        
         while True:
             if self.settings["enabled"]:
+                try:
                 
-                pass
+                    for actuator, params in actuators.config.items():
+                        _, sensor_data = sensors.get(params["sensor"])
+                        sensor_value = sensor_data["value"]
+                        
+                        new_state = None
+                        if sensor_value <= params["threshold"] - params["deviation"]:
+                            new_state = True
+                        elif sensor_value > params["threshold"] + params["deviation"]:
+                            new_state = False
+                        
+                        if new_state is not None:
+                            actuators.set(actuator, {"enabled": new_state})
+                
+                except Exception as e:
+                    print(e.args[0])
 
             time.sleep(self.config["interval"])
 
@@ -181,39 +165,28 @@ class SmartGardenHTTPRequestHandler(BaseHTTPRequestHandler):
         try:
             results = []
 
-            path = self.path.strip("/")
-            if path == "":
+            path = self.path.strip("/").split("/")
+            if path[0] == "":
                 self.respond(204)
 
-            elif path == "sensors":
-                results.append(sensors.get_temperature())
-                results.append(sensors.get_humidity())
-                results.append(sensors.get_moisture())
-                results.append(sensors.get_luminosity())
-            elif path == "sensors/temperature":
-                results.append(sensors.get_temperature())
-            elif path == "sensors/humidity":
-                results.append(sensors.get_humidity())
-            elif path == "sensors/moisture":
-                results.append(sensors.get_moisture())
-            elif path == "sensors/luminosity":
-                results.append(sensors.get_luminosity())
+            elif path[0] == "sensors":
+                if len(path) == 1:
+                    for sensor in config["Sensors"].keys():
+                        results.append(sensors.get(sensor))
+                else:
+                    results.append(sensors.get(path[1]))
             
-            elif path == "actuators":
-                results.append(actuators.get_watering())
-                results.append(actuators.get_lighting())
-                results.append(actuators.get_heating())
-            elif path == "actuators/watering":
-                results.append(actuators.get_watering())
-            elif path == "actuators/lighting":
-                results.append(actuators.get_lighting())
-            elif path == "actuators/heating":
-                results.append(actuators.get_heating())
+            elif path[0] == "actuators":
+                if len(path) == 1:
+                    for actuator in config["Actuators"].keys():
+                        results.append(actuators.get(actuator))
+                else:
+                    results.append(actuators.get(path[1]))
 
-            elif path == "controller":
+            elif path[0] == "controller":
                 results.append(controller.get())
             
-            elif path == "image":
+            elif path[0] == "image":
                 self.respond_content(*image.get())
 
             else:
@@ -229,35 +202,23 @@ class SmartGardenHTTPRequestHandler(BaseHTTPRequestHandler):
         try:
             results = []
 
-            path = self.path.strip("/")
-            if path == "":
+            path = self.path.strip("/").split("/")
+            if path[0] == "":
                 self.respond_error(405, "Method Not Allowed")
             
-            elif path.startswith("sensors"):
+            elif path[0] == "sensors":
                 self.respond_error(405, "Method Not Allowed")
             
-            elif path.startswith("image"):
+            elif path[0] == "image":
                 self.respond_error(405, "Method Not Allowed")
 
-            elif path == "actuators":
-                self.respond_error(405, "Method Not Allowed")
-            elif path == "actuators/watering":
-                if not controller.settings["enabled"]:
-                    results.append(actuators.set_watering(self.json))
+            elif path[0] == "actuators":
+                if len(path) == 1:
+                    self.respond_error(405, "Method Not Allowed")
                 else:
-                    self.respond_error(403, "Cannot set actuators while the controller is enabled.")
-            elif path == "actuators/lighting":
-                if not controller.settings["enabled"]:
-                    results.append(actuators.set_lighting(self.json))
-                else:
-                    self.respond_error(403, "Cannot set actuators while the controller is enabled.")
-            elif path == "actuators/heating":
-                if not controller.settings["enabled"]:
-                    results.append(actuators.set_heating(self.json))
-                else:
-                    self.respond_error(403, "Cannot set actuators while the controller is enabled.")
+                    results.append(actuators.set(path[1], self.json))
             
-            elif path == "controller":
+            elif path[0] == "controller":
                 results.append(controller.set(self.json))
 
             else:
@@ -271,12 +232,11 @@ class SmartGardenHTTPRequestHandler(BaseHTTPRequestHandler):
 
 
 def main():
+    global sensors, actuators, image, controller, config
     with open("/etc/SmartGarden/config.json", "r") as f:
         config = json.load(f)
-    
-    global sensors, actuators, image, controller
-    sensors = SmartGardenSensors()
-    actuators = SmartGardenActuators()
+    sensors = SmartGardenSensors(config["Sensors"])
+    actuators = SmartGardenActuators(config["Actuators"])
     image = SmartGardenImage(config["Image"])
     controller = SmartGardenController(config["Controller"])
     controller.start()
