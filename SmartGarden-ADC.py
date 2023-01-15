@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import json
+import time
 
 import serial
 
@@ -19,7 +20,7 @@ class Conversions:
 with open("/etc/SmartGarden/config.json", "r") as f:
     config = json.load(f)["ADC"]
 
-s = serial.Serial(config["device"], config["baud"], timeout=1)
+s = serial.Serial(config["device"], config["baud"], timeout=0.2)
 s.reset_input_buffer()
 
 def write_value(channel, value):
@@ -34,9 +35,17 @@ def write_value(channel, value):
         f.write(f"{value:.1f}")
 
 while True:
-    if s.in_waiting > 0:
-        values = s.readline().decode().strip().split("\t")
-        if len(values) == 6:
+    s.write(b"r")
+    c = 0
+    while c < 5:
+        try:
+            values = s.readline().decode().strip().split("\t")
+            assert len(values) == 6
             print(values)
             for channel, value in enumerate(values):
                 write_value(channel, value)
+            break
+        except Exception:
+            c += 1
+
+    time.sleep(1)
